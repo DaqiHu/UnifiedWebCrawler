@@ -1,0 +1,379 @@
+{
+  "target": "https://jobs.mihoyo.com/#/campus/position/8123",
+  "resolved_job_id": "8123",
+  "primary_payload": {
+    "id": "8123",
+    "code": "",
+    "title": "游戏引擎开发实习生",
+    "addressDetailList": [
+      {
+        "addressId": "8",
+        "addressDetail": "上海"
+      }
+    ],
+    "competencyTypeId": "1",
+    "competencyType": "程序&技术类",
+    "jobNatureId": 3,
+    "jobNature": "实习",
+    "projectName": "实习生专项",
+    "description": "1. 引擎模块开发与维护：参与游戏引擎核心子系统（如动画系统、物理模拟、资源管线、工具链等）的开发、功能拓展与性能优化\n2. 跨平台与性能工程：协助解决引擎在Windows、Android、iOS等多平台的适配性、稳定性及性能问题\n3. 技术方案研究与落地：在导师指导下，了解业界先进的引擎架构与解决方案，并在项目中评估与应用",
+    "jobRequire": "1. 扎实的计算机基础、良好的数学功底和C++编程能力\n2. 在渲染 、动画、 物理 、文件 、资源复杂系统、工具链，任意一个方向有深入了解\n3. 至少熟悉一个OS系统（Windows/ iOS /Android/ PlayStation）\n4. 良好的沟通协作能力，自驱动的学习能力和分析解决问题能力，责任心强\n5. 实习时长不低于3个月，每周出勤至少4天",
+    "addition": "1. 有Unity/UE 或 自研引擎源码开发经验优先\n2. 有AIGC、代码大模型提效、AI 自动化、AI Agent 等相关应用经验者优先",
+    "deliveryInstructions": "",
+    "hadDelivery": 0,
+    "status": 1,
+    "channelDetailIds": [
+      1,
+      2
+    ],
+    "objectId": "20",
+    "objectName": "2027届及之后毕业的在校生",
+    "projectId": 4,
+    "hireType": 1,
+    "hireTypeName": "校园招聘",
+    "hurry": false,
+    "tagList": [],
+    "jobSummary": ""
+  },
+  "related_payloads": [
+    {
+      "id": "8122",
+      "code": "",
+      "title": "游戏渲染开发实习生",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "1、参与游戏引擎核心渲染模块的开发与维护，包括但不限于光照、阴影、后处理等全局性渲染效果的实现\n2、充分理解并最大限度地发挥不同平台的硬件特性，优化渲染功能性能\n3、在导师指导下，研究并尝试应用前沿渲染算法与技术，以持续提升项目的画面表现力",
+      "jobRequire": "1、扎实的计算机基础、良好的数学功底和C++编程能力\n2、至少熟悉一种现代图形API（DirectX / Vulkan/OpenGL）和一种Shader语言\n3、强烈的求知欲、出色的学习能力、逻辑分析及解决问题能力。具备良好的团队沟通协作意识和责任心\n4、实习时长不低于3个月，每周出勤至少4天",
+      "addition": "1、有Unity/UE 或 自研引擎源码开发经验优先\n2、有图形学相关领域的论文发表、技术博客或高质量个人项目者优先\n3、有AIGC、代码大模型提效、AI 自动化、AI Agent 等相关应用经验者优先",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": false,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "7766",
+      "code": "",
+      "title": "图形学研究员实习生（动作生成方向）",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "面向实时场景的虚拟角色动画生成与控制技术研究与落地，围绕动作补间，动作合成与可控运动，提升角色在交互，移动等场景下的自然度、稳定性与实时性能。",
+      "jobRequire": "1. 学历背景：人工智能、计算机科学、图形学等相关专业硕士及以上学历；\n2. 算法能力：有动作合成/补间/控制相关网络训练经验，熟悉常见模型架构与训练流程；\n3. 专业基础：理解角色动画与运动学基础（骨骼、retarget、root motion、IK、接触/约束、插值/混合等），具备良好的问题拆解与分析能力；\n4. 工程能力：熟悉Python与PyTorch，能快速实现与验证想法。",
+      "addition": "1. 在角色动画/动作生成/运动控制相关方向发表过高质量论文或有开源成果；\n2. 熟悉Unreal/Unity动画系统或有实际项目落地经验。",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": false,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "8294",
+      "code": "",
+      "title": "图形算法工程师实习生（动捕动画方向）",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "1. 参与动画制作流程的算法及工程开发，帮助动画师提升制作效率与质量；\n2. 维护现有算法和流程工具，确保制作任务顺利进行。",
+      "jobRequire": "1. 计算机科学、软件工程、数学等相关专业在校学生；\n2. 具有扎实的计算机科学基础，具备良好的数学和算法基础；\n3. 具备图形学基础知识，加分项：了解角色动画及运动学基本概念，了解动画重定向、动画生成等动画领域相关知识；\n4. 对图形学技术充满热情，具备良好的逻辑思维能力，乐于学习新技术并解决实际问题；\n5. 熟悉 C++/Python编程，有一定工程化能力者优先；\n6. 具备良好的沟通能力和团队协作精神。",
+      "addition": "",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": false,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "7779",
+      "code": "",
+      "title": "图形学研究员实习生（角色动画生成方向）",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "面向实时场景的角色动画生成技术探索与落地，围绕动作过渡、动作混合与动作，提升角色在交互、移动等场景下的自然度、稳定性与实时性能。重点关注姿态质量、接触与约束一致性等动画表现。",
+      "jobRequire": "1. 人工智能、计算机科学、图形学等相关专业硕士及以上学历；\n2. 熟练掌握 VAE，Diffusion 等常见生成模型原理，有过相关模型训练调优经验；\n3. 理解角色动画与运动学基础概念（locomotion、FK/IK、接触/约束、插值/混合、运动连续性等）；\n4. 对技术充满热情，思维清晰，具有很好的问题分析推断能力，良好的沟通表达能力和合作能力。",
+      "addition": "1. 在相关领域顶级会议（如SIGGRAPH/ASIA，CVPR）上有论文发表优先考虑；\n2. 熟悉动作生成/控制等一些常见技术，比如Motion Matching，PFNN，NSM, Learned Motion Matching等；\n3. 对动作质量有较强判断与调优能力，比如一些滑步，timing问题。",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": false,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "7235",
+      "code": "",
+      "title": "动作生成实习生（交互方向）",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "基于Isaac Gym等物理仿真平台，研究手与物体进行交互的动作生成算法；探索如何利用强化学习和生成模型，提升手物交互动作的物理合理性与美观度；",
+      "jobRequire": "1.计算机科学、数学、统计学或相关领域的硕士或博士研究生在读，实习时长3个月以上；\n2.具备强化学习相关经验，包括但不限于模拟、编辑、控制与生成等；\n3.了解基本的生成模型算法，比如VAE，Diffusion，Autoregressive等；",
+      "addition": "1.熟悉强化学习在动作生成上的一些算法，比如DeepMimic，AMP，PHC等。\n2.熟悉Isaac Lab，MuJoCo等物理仿真环境，能实现humanoid模型构建到motion mimic的完整流程。\n3.在相关领域顶级会议（如CVPR、ICCV、ECCV、SIGGRAPH）上有论文发表优先考虑。",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": true,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "8008",
+      "code": "",
+      "title": "游戏构建开发实习生",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "什么是游戏构建开发？一键直达：https://mp.weixin.qq.com/s/LVYkcHp4y7ZXgluAbbqYOA\n\n1、参与项目构建流程的设计与搭建，通过流程优化和工具开发提升资源检查、出包验证等环节的效率；\n2、优化多版本并行开发流程，支持团队在快节奏开发下的高效协作；\n3、负责自动化构建管线的开发、部署与维护，包括游戏包构建、资产检查导出等关键管线；\n4、掌握构建问题的排查与解决，保障构建系统的稳定运行；\n5、维护构建系统及远端机环境，参与大型游戏项目的工业化体系建设。",
+      "jobRequire": "1、本科及以上学历，计算机或相关专业，2027届及之后毕业的在校同学；\n2、熟练掌握C#、Python、Shell等脚本语言，具备扎实的编程基础；\n3、具备较强的逻辑思维和问题解决能力，能够系统性分析并处理复杂技术问题；\n4、良好的沟通协作能力，积极主动，能与团队高效配合；\n5、对游戏构建开发感兴趣，愿意在构建开发领域深入钻研；\n6、具备快速学习能力和责任心，能适应一定的工作压力。",
+      "addition": "1、掌握Java、C++等高级语言；\n2、掌握SVN或Git、Perforce等版本控制软件，及AndroidStudio和XCode软件的使用；\n3、了解Teamcity或Jenkins等构建系统，及Unity或Unreal等引擎；\n4、具备网络相关知识，能够调查基础的网络故障问题；\n5、有 AIGC、代码大模型提效、AI 自动化、AI Agent 等相关实践经验；\n6、可尽快到岗、全勤实习三个月以上的同学优先。",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": true,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "7756",
+      "code": "",
+      "title": "游戏客户端开发实习生",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "1、参与大型商业游戏的客户端开发，深入理解玩法设计，将策划案转化为稳定、可扩展的代码实现；\n2、使用游戏引擎开发核心模块，如：AI、角色3C（移动/镜头/控制）、战斗逻辑、UI系统、场景管理、性能优化等；\n3、与策划、美术紧密协作，参与技术方案设计，为游戏体验提升提供专业建议；\n4、攻克网络同步、内存优化、渲染效率等技术难点，保障玩家流畅体验。",
+      "jobRequire": "1、计算机相关专业，具备扎实的计算机基础（数据结构/算法/操作系统/网络）；\n2、热爱编程，至少掌握一种游戏开发常用的编程语言，并深入了解其思想、原理和底层细节；\n3、具备系统性的编程思维，能对复杂问题进行拆解并设计清晰解决方案；\n4、逻辑思考、沟通表达清晰，具备团队协作意识，对技术难题有强烈的好奇心和攻克欲望；\n5、具备快速学习能力，能主动跟进游戏开发领域的新技术趋势；\n6、实习时长不低于3个月，每周出勤至少4天。",
+      "addition": "1、有实际游戏项目的开发经历或实习经历；\n2、接触学习过游戏开发引擎（比如Unity、虚幻）；\n3、有 AIGC、代码大模型提效、AI 自动化、AI Agent 等相关AI应用经验者优先",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": true,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "7672",
+      "code": "",
+      "title": "游戏客户端工具开发实习生",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "1、参与大型项目海量内容的工业化生产工具开发；\n2、参与设计和实现工具来支撑游戏内容的不同模块，如战斗、关卡、剧情演出、任务等；\n3、参与设计与开发工具提高游戏中各个环节的效率；\n4、掌握如何维护和提升现有工具的稳定性、易用性与人机功效，辨别对应内容制作管线中存在的效率和质量问题，主动寻找和提供改进方案。",
+      "jobRequire": "1、本科及以上学历，计算机或相关专业，2027届及之后毕业的在校同学；\n2、至少了解一门C系语言，至少精通一门面向对象的编程语言，并深入了解其思想、原理和底层细节；\n3、专业课程基础扎实，在程序语言、编译原理、数据结构、算法、计算机组成、计算机网络等课程、数据库等方向上有过系统的学习；\n4、善于分析和沟通，逻辑清晰，有强烈的求知欲和优秀的学习能力；\n5、实习时长不低于3个月，每周出勤至少4天（论文等学校特殊情况可灵活沟通）。",
+      "addition": "1、有实际游戏项目的开发经历或实习经历；\n2、接触学习过游戏开发引擎（比如Unity、虚幻引擎）；\n3、有 AIGC、代码大模型提效、AI 自动化、AI Agent 等相关AI应用经验者优先；\n4、可尽快到岗、全勤实习三个月以上的同学优先。",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": true,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "8265",
+      "code": "",
+      "title": "游戏测试开发实习生",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "1. 负责开发测试工具，参与游戏质量相关工具和平台的前后端开发；\n2. 负责专项测试平台的前后端开发，涉及兼容性，自动化，服务器性能，客户端性能，安全等平台；\n3. 负责研究新型测试技术，帮助项目提升整体质量。",
+      "jobRequire": "1. 具备扎实的计算机基础，熟悉至少一门编程语言（C/C++，C#，Python，Go等不限），深入理解数据结构、算法、操作系统和网络等知识；\n2. 具备扎实的web研发基础知识，熟悉HTTP协议、MySQL等Web相关技术；\n3. 熟悉系统设计与算法；\n4. 具备优秀的逻辑思维能力和强烈的求知欲，能够快速学习新的知识。",
+      "addition": "1. 了解产品级的平台服务研发经验，了解代码托管、大数据处理；\n2. 了解主流iOS/Android自动化、性能相关，了解Unity、Unreal等业界引擎；\n3. 有 AIGC、AI 自动化、代码大模型提效、AI Agent 等AI应用相关实践经验者优先。",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": false,
+      "tagList": [],
+      "jobSummary": ""
+    },
+    {
+      "id": "8145",
+      "code": "",
+      "title": "运维开发实习生",
+      "addressDetailList": [
+        {
+          "addressId": "8",
+          "addressDetail": "上海"
+        }
+      ],
+      "competencyTypeId": "1",
+      "competencyType": "程序&技术类",
+      "jobNatureId": 3,
+      "jobNature": "实习",
+      "projectName": "实习生专项",
+      "description": "1、作为 devops 的一员，参与各种基础设施自动化系统的开发；\n2、参与优化开发流程，优化公有云资源管理；\n3、参与基础设施自动化平台的标准制定，文档建设。",
+      "jobRequire": "1、2027届及之后毕业的在校生，本科及以上学历，计算机相关专业；\n2、熟悉 Python/Go/C/C++ 中至少一种语言编程，有一定的开发经验；\n3、熟悉网络编程或并发编程，对 TCP/IP，HTTP 等网络协议有较深的理解；\n4、对计算机体系结构，操作系统有足够的了解；\n6、熟练掌握常用的数据结构和算法。",
+      "addition": "1、有数据库相关经验和知识，使用过 MySQL 优先；\n2、有完整开发项目，活跃于开源社区或有在 Github 开源过项目者优先。",
+      "deliveryInstructions": "",
+      "hadDelivery": 0,
+      "status": 1,
+      "channelDetailIds": [
+        1,
+        2
+      ],
+      "objectId": "20",
+      "objectName": "2027届及之后毕业的在校生",
+      "projectId": 4,
+      "hireType": 1,
+      "hireTypeName": "校园招聘",
+      "hurry": false,
+      "tagList": [],
+      "jobSummary": ""
+    }
+  ]
+}
