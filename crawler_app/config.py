@@ -18,7 +18,8 @@ MIHOYO_JOB_URL = "https://jobs.mihoyo.com/#/campus/position/{job_id}"
 
 HTTP_TIMEOUT_SECONDS = 20.0
 
-SKILL_KEYWORDS = {
+ANALYSIS_KEYWORDS = {
+    "引擎 / 客户端": ["引擎", "客户端", "C++", "跨平台", "性能优化"],
     "C++": ["C++"],
     "Python": ["Python"],
     "Unity / UE": ["Unity", "UE", "Unreal"],
@@ -35,7 +36,12 @@ SKILL_KEYWORDS = {
     "PlayStation": ["PlayStation"],
     "AIGC / Agent": ["AIGC", "AI Agent", "AI 自动化", "代码大模型"],
     "数学基础": ["数学"],
-    "引擎开发": ["引擎"],
+    "交互 / 策划": ["交互", "策划", "体验设计", "原型", "Figma", "玩家体验", "操作体验"],
+    "设计工具": ["Figma", "PS", "AI", "Photoshop", "Illustrator"],
+    "美术 / 原画": ["原画", "美术", "概念设计", "三视图", "审美", "作品集"],
+    "机械 / 载具": ["机械", "载具", "枪械", "硬表面", "写实", "材质"],
+    "模型制作": ["3Ds Max", "Maya", "模型制作", "贴图"],
+    "游戏体验": ["热爱游戏", "游戏经历", "射击游戏", "玩家心理", "交互反馈"],
 }
 
 

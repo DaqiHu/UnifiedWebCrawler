@@ -1,12 +1,19 @@
 from __future__ import annotations
 
-from io import BytesIO
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from crawler_app.analysis import build_overview_metrics, build_skill_matrix, build_skill_summary, enrich_jobs_dataframe, split_non_empty_lines
+from crawler_app.analysis import (
+    build_category_summary,
+    build_focus_insights,
+    build_overview_metrics,
+    build_skill_matrix,
+    build_skill_summary,
+    build_tag_summary,
+    enrich_jobs_dataframe,
+    split_non_empty_lines,
+)
 from crawler_app.config import APP_TITLE, DEFAULT_SOURCE, DEFAULT_TARGET
 from crawler_app.connectors import get_connectors
 from crawler_app.connectors.base import ConnectorError
@@ -65,10 +72,24 @@ def run_crawl(service: CrawlService, source: str, target: str, related_limit: in
     )
 
 
+def run_category_sync(service: CrawlService, source: str, category_id: str) -> None:
+    with st.spinner("正在同步该类别的全部实习岗位..."):
+        job_count, run_id = service.sync_category_jobs(source=source, competency_type_id=category_id, internships_only=True)
+    st.success(f"已完成类别全量同步，运行 #{run_id}，新增/更新 {job_count} 个岗位。")
+
+
+def run_full_sync(service: CrawlService, source: str) -> None:
+    with st.spinner("正在同步 miHoYo 全站实习岗位..."):
+        job_count, run_id = service.sync_all_jobs(source=source, internships_only=True)
+    st.success(f"已完成全站全量同步，运行 #{run_id}，新增/更新 {job_count} 个岗位。")
+
+
 service = get_service()
 storage = service.storage
 connectors = get_connectors()
 connector = connectors[DEFAULT_SOURCE]
+category_counts = service.fetch_category_counts(DEFAULT_SOURCE, internships_only=True)
+category_options = {item["competencyType"]: f'{item["competencyTypeName"]} ({item["count"]})' for item in category_counts}
 
 jobs_df = storage.jobs_dataframe(DEFAULT_SOURCE)
 if jobs_df.empty and "auto_bootstrapped" not in st.session_state:
@@ -90,11 +111,25 @@ with st.sidebar:
         options=[DEFAULT_SOURCE],
         format_func=lambda key: connectors[key].display_name,
     )
+    crawl_mode = st.radio(
+        "抓取模式",
+        options=["单岗位 + 相似岗位", "同类别全量（仅实习）", "全站全量（仅实习）"],
+    )
     target = st.text_input("岗位 URL 或岗位 ID", value=DEFAULT_TARGET)
     related_limit = st.slider("相似岗位抓取数", min_value=3, max_value=20, value=10)
-    if st.button("抓取 / 刷新当前数据", type="primary", use_container_width=True):
+    selected_category_id = st.selectbox(
+        "类别（全量同步时使用）",
+        options=list(category_options.keys()),
+        format_func=lambda key: category_options[key],
+    )
+    if st.button("执行抓取 / 同步", type="primary", use_container_width=True):
         try:
-            run_crawl(service, source_label, target, related_limit)
+            if crawl_mode == "单岗位 + 相似岗位":
+                run_crawl(service, source_label, target, related_limit)
+            elif crawl_mode == "同类别全量（仅实习）":
+                run_category_sync(service, source_label, selected_category_id)
+            else:
+                run_full_sync(service, source_label)
         except ConnectorError as error:
             st.error(str(error))
         jobs_df = enrich_jobs_dataframe(storage.jobs_dataframe(DEFAULT_SOURCE))
@@ -110,6 +145,10 @@ with st.sidebar:
 
 st.title("Unified Web Crawler Workbench")
 st.caption("当前已接入 miHoYo 校园招聘连接器。后续新增企业招聘页或文档页面时，只需要新增连接器模块。")
+st.info(
+    "支持三种范围：单岗位样本抓取、同类别全量实习抓取、全站全量实习抓取。"
+    " 程序 55 / 美术 27 / 产品策划 16 属于全站实习全量统计。"
+)
 
 catalog_columns = st.columns(3)
 catalog_columns[0].markdown(
@@ -146,8 +185,8 @@ catalog_columns[2].markdown(
     unsafe_allow_html=True,
 )
 
-overview_tab, jobs_tab, detail_tab, raw_tab, runs_tab = st.tabs(
-    ["概览", "岗位表格", "岗位详情与对比", "原始数据", "运行记录"]
+overview_tab, focus_tab, jobs_tab, detail_tab, raw_tab, runs_tab = st.tabs(
+    ["概览", "关注", "岗位表格", "岗位详情与对比", "原始数据", "运行记录"]
 )
 
 with overview_tab:
@@ -161,20 +200,35 @@ with overview_tab:
     if jobs_df.empty:
         st.info("当前数据库还没有数据。先在左侧点击“抓取 / 刷新当前数据”。")
     else:
+        category_count_text = "，".join(f"{item['competencyTypeName']} {item['count']}" for item in category_counts[:8])
+        st.caption(f"米哈游当前实习类别计数：{category_count_text}")
         chart_columns = st.columns([1.2, 1])
         skill_df = build_skill_summary(jobs_df)
         chart_columns[0].plotly_chart(
             px.bar(
                 skill_df.head(12),
-                x="skill",
+                x="topic",
                 y="count",
-                title="技能与关键词覆盖",
+                title="跨领域关键词覆盖",
                 text_auto=True,
             ),
             use_container_width=True,
         )
-        location_df = jobs_df.groupby("location", as_index=False)["job_id"].count().rename(columns={"job_id": "count"})
+        category_df = build_category_summary(jobs_df)
         chart_columns[1].plotly_chart(
+            px.bar(
+                category_df,
+                x="category",
+                y="count",
+                title="岗位类别分布",
+                text_auto=True,
+            ),
+            use_container_width=True,
+        )
+
+        lower_columns = st.columns([1, 1])
+        location_df = jobs_df.groupby("location", as_index=False)["job_id"].count().rename(columns={"job_id": "count"})
+        lower_columns[0].plotly_chart(
             px.bar(
                 location_df,
                 x="location",
@@ -184,6 +238,20 @@ with overview_tab:
             ),
             use_container_width=True,
         )
+        tag_df = build_tag_summary(jobs_df)
+        if not tag_df.empty:
+            lower_columns[1].plotly_chart(
+                px.bar(
+                    tag_df.head(10),
+                    x="tag",
+                    y="count",
+                    title="岗位标签覆盖",
+                    text_auto=True,
+                ),
+                use_container_width=True,
+            )
+        else:
+            lower_columns[1].info("当前样本中暂无岗位标签。")
 
         st.subheader("最近抓取的数据")
         display_df = jobs_df[
@@ -194,13 +262,39 @@ with overview_tab:
                 "category",
                 "job_nature",
                 "target_audience",
+                "summary_count",
                 "requirement_count",
                 "bonus_count",
+                "delivery_count",
                 "updated_at",
             ]
         ].copy()
         display_df["updated_at"] = display_df["updated_at"].dt.strftime("%Y-%m-%d %H:%M:%S UTC")
         st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+with focus_tab:
+    if jobs_df.empty:
+        st.info("当前数据库还没有数据。先在左侧点击“抓取 / 刷新当前数据”。")
+    else:
+        focus_insights = build_focus_insights(jobs_df)
+        st.caption("以下结论基于岗位 JD 文本做启发式推断，适合先筛选，再回到岗位详情做人工确认。")
+
+        with st.expander("1. 哪些岗位在做跨界融合", expanded=True):
+            st.write(focus_insights["cross_domain"]["description"])
+            st.caption(focus_insights["cross_domain"]["summary"])
+            st.dataframe(focus_insights["cross_domain"]["table"], use_container_width=True, hide_index=True)
+
+        with st.expander("2. 哪些岗位前期准备时间相对少，且尽量没有测试", expanded=True):
+            st.write(focus_insights["low_prep"]["description"])
+            st.caption(focus_insights["low_prep"]["summary"])
+            st.dataframe(focus_insights["low_prep"]["table"], use_container_width=True, hide_index=True)
+
+        with st.expander("3. 哪些岗位更容易看清公司全貌与生产管线", expanded=True):
+            st.write(focus_insights["pipeline"]["description"])
+            st.caption(focus_insights["pipeline"]["summary"])
+            st.dataframe(focus_insights["pipeline"]["table"], use_container_width=True, hide_index=True)
+            st.caption("高频岗位关系边")
+            st.dataframe(focus_insights["pipeline"]["edges"], use_container_width=True, hide_index=True)
 
 with jobs_tab:
     if jobs_df.empty:
@@ -215,9 +309,12 @@ with jobs_tab:
                 "target_audience",
                 "job_nature",
                 "project_name",
+                "tags_text",
+                "summary_count",
                 "responsibility_count",
                 "requirement_count",
                 "bonus_count",
+                "delivery_count",
                 "url",
             ]
         ]
@@ -238,9 +335,19 @@ with detail_tab:
         info_cols[1].metric("城市", selected_job["location"])
         info_cols[2].metric("类别", selected_job["category"])
         info_cols[3].metric("面向对象", selected_job["target_audience"])
+        if selected_job["tags_text"]:
+            st.caption(f"岗位标签: {selected_job['tags_text']}")
 
         text_cols = st.columns(2)
         with text_cols[0]:
+            st.subheader("岗位摘要")
+            summary_lines = split_non_empty_lines(selected_job["summary"])
+            if summary_lines:
+                for line in summary_lines:
+                    st.write(line)
+            else:
+                st.write("无")
+
             st.subheader("工作职责")
             for line in split_non_empty_lines(selected_job["description"]):
                 st.write(line)
@@ -258,6 +365,14 @@ with detail_tab:
             for line in split_non_empty_lines(selected_job["requirements"]):
                 st.write(line)
 
+            st.subheader("投递说明")
+            delivery_lines = split_non_empty_lines(selected_job["delivery_instructions"])
+            if delivery_lines:
+                for line in delivery_lines:
+                    st.write(line)
+            else:
+                st.write("无")
+
             st.subheader("岗位链接")
             st.markdown(f"[{selected_job['url']}]({selected_job['url']})")
 
@@ -267,7 +382,7 @@ with detail_tab:
 
         st.subheader("岗位对比")
         comparison_ids = st.multiselect(
-            "选择要对比的岗位",
+            "选择要对比的岗位，支持程序 / 策划 / 美术跨方向一起分析",
             options=jobs_df["job_id"].tolist(),
             default=[selected_job_id],
             format_func=lambda job_id: f"{job_id} - {jobs_df.loc[jobs_df['job_id'] == job_id, 'title'].iloc[0]}",

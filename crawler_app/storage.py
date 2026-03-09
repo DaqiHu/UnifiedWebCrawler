@@ -40,6 +40,7 @@ class SQLiteStorage:
                     requirements TEXT,
                     bonus_points TEXT,
                     summary TEXT,
+                    delivery_instructions TEXT,
                     address_ids_json TEXT NOT NULL,
                     channel_detail_ids_json TEXT NOT NULL,
                     tags_json TEXT NOT NULL,
@@ -73,6 +74,7 @@ class SQLiteStorage:
                 );
                 """
             )
+            self._ensure_job_columns(connection)
 
     def save_crawl_bundle(self, bundle: CrawlBundle) -> int:
         raw_snapshot_path = self._write_raw_snapshot(bundle)
@@ -119,6 +121,42 @@ class SQLiteStorage:
                     str(raw_snapshot_path),
                     bundle.started_at,
                     bundle.finished_at,
+                    None,
+                ),
+            )
+            return int(cursor.lastrowid)
+
+    def save_job_batch(
+        self,
+        source: str,
+        target: str,
+        jobs: list[JobRecord],
+        raw_snapshot: dict[str, Any],
+        started_at: str,
+        finished_at: str,
+        primary_job_id: str = "",
+    ) -> int:
+        raw_snapshot_path = self._write_batch_snapshot(source, primary_job_id or "batch", raw_snapshot, finished_at)
+        with sqlite3.connect(self.db_path) as connection:
+            for job in jobs:
+                self._upsert_job(connection, job)
+
+            cursor = connection.execute(
+                """
+                INSERT INTO crawl_runs (
+                    source, target, primary_job_id, job_count, status, raw_snapshot_path,
+                    started_at, finished_at, error_message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    source,
+                    target,
+                    primary_job_id,
+                    len(jobs),
+                    "success",
+                    str(raw_snapshot_path),
+                    started_at,
+                    finished_at,
                     None,
                 ),
             )
@@ -216,9 +254,9 @@ class SQLiteStorage:
             INSERT INTO jobs (
                 source, job_id, url, title, location, category, category_id, target_audience,
                 job_nature, job_nature_id, hire_type_name, hire_type_id, project_name,
-                description, requirements, bonus_points, summary, address_ids_json,
-                channel_detail_ids_json, tags_json, raw_payload_json, fetched_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                description, requirements, bonus_points, summary, delivery_instructions,
+                address_ids_json, channel_detail_ids_json, tags_json, raw_payload_json, fetched_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(source, job_id) DO UPDATE SET
                 url = excluded.url,
                 title = excluded.title,
@@ -235,6 +273,7 @@ class SQLiteStorage:
                 requirements = excluded.requirements,
                 bonus_points = excluded.bonus_points,
                 summary = excluded.summary,
+                delivery_instructions = excluded.delivery_instructions,
                 address_ids_json = excluded.address_ids_json,
                 channel_detail_ids_json = excluded.channel_detail_ids_json,
                 tags_json = excluded.tags_json,
@@ -261,6 +300,7 @@ class SQLiteStorage:
                 job.requirements,
                 job.bonus_points,
                 job.summary,
+                job.delivery_instructions,
                 json.dumps(job.address_ids, ensure_ascii=False),
                 json.dumps(job.channel_detail_ids, ensure_ascii=False),
                 json.dumps(job.tags, ensure_ascii=False),
@@ -271,12 +311,34 @@ class SQLiteStorage:
         )
 
     def _write_raw_snapshot(self, bundle: CrawlBundle) -> Path:
-        source_dir = RAW_DIR / bundle.source
+        return self._write_batch_snapshot(
+            source=bundle.source,
+            prefix=bundle.primary_job.job_id,
+            raw_snapshot=bundle.raw_snapshot,
+            finished_at=bundle.finished_at,
+        )
+
+    def _write_batch_snapshot(
+        self,
+        source: str,
+        prefix: str,
+        raw_snapshot: dict[str, Any],
+        finished_at: str,
+    ) -> Path:
+        source_dir = RAW_DIR / source
         source_dir.mkdir(exist_ok=True)
-        filename = f"{bundle.primary_job.job_id}_{bundle.finished_at.replace(':', '-').replace('+', '_')}.json"
+        filename = f"{prefix}_{finished_at.replace(':', '-').replace('+', '_')}.json"
         path = source_dir / filename
         path.write_text(
-            json.dumps(bundle.raw_snapshot, ensure_ascii=False, indent=2),
+            json.dumps(raw_snapshot, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         return path
+
+    def _ensure_job_columns(self, connection: sqlite3.Connection) -> None:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+        }
+        if "delivery_instructions" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN delivery_instructions TEXT DEFAULT ''")

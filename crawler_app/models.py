@@ -28,6 +28,7 @@ class JobRecord:
     requirements: str
     bonus_points: str
     summary: str = ""
+    delivery_instructions: str = ""
     address_ids: list[str] = field(default_factory=list)
     channel_detail_ids: list[int] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
@@ -35,7 +36,15 @@ class JobRecord:
     fetched_at: str = field(default_factory=utc_now_iso)
 
     def combined_text(self) -> str:
-        parts = [self.title, self.description, self.requirements, self.bonus_points, self.summary]
+        parts = [
+            self.title,
+            self.summary,
+            self.description,
+            self.requirements,
+            self.bonus_points,
+            self.delivery_instructions,
+            " ".join(self.tags),
+        ]
         return "\n".join(part for part in parts if part)
 
     def to_dict(self) -> dict[str, Any]:
