@@ -15,3 +15,4 @@ data/*
 !data/raw/.gitkeep
 !data/exports/
 !data/exports/.gitkeep
+data/raw/**/*.json
