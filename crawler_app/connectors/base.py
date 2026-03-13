@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-
-from crawler_app.models import CrawlBundle
+from typing import Any
 
 
 class ConnectorError(RuntimeError):
@@ -17,5 +16,5 @@ class BaseConnector(ABC):
     default_target: str
 
     @abstractmethod
-    def crawl(self, target: str, related_limit: int = 10) -> CrawlBundle:
+    def crawl(self, target: str, related_limit: int = 10) -> Any:
         raise NotImplementedError

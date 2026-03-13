@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 
 from crawler_app.config import DB_PATH, RAW_DIR, ensure_directories
-from crawler_app.models import CrawlBundle, JobRecord
+from crawler_app.models import CrawlBundle, JobRecord, WeaponBundle, WeaponRecord
 
 
 class SQLiteStorage:
@@ -72,6 +72,35 @@ class SQLiteStorage:
                     finished_at TEXT NOT NULL,
                     error_message TEXT
                 );
+
+                CREATE TABLE IF NOT EXISTS weapon_pages (
+                    source TEXT NOT NULL,
+                    item_id TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    item_type TEXT,
+                    rarity TEXT,
+                    ammo_type TEXT,
+                    firing_mode TEXT,
+                    arc_armor_penetration TEXT,
+                    magazine_size TEXT,
+                    quote TEXT,
+                    summary TEXT,
+                    infobox_tags_json TEXT NOT NULL,
+                    mod_slots_json TEXT NOT NULL,
+                    stats_json TEXT NOT NULL,
+                    sources_json TEXT NOT NULL,
+                    crafting_json TEXT NOT NULL,
+                    upgrading_json TEXT NOT NULL,
+                    repairing_json TEXT NOT NULL,
+                    recycling_json TEXT NOT NULL,
+                    price_comparison_json TEXT NOT NULL,
+                    history_json TEXT NOT NULL,
+                    raw_payload_json TEXT NOT NULL,
+                    fetched_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    PRIMARY KEY (source, item_id)
+                );
                 """
             )
             self._ensure_job_columns(connection)
@@ -117,6 +146,36 @@ class SQLiteStorage:
                     bundle.target,
                     bundle.primary_job.job_id,
                     len(jobs),
+                    "success",
+                    str(raw_snapshot_path),
+                    bundle.started_at,
+                    bundle.finished_at,
+                    None,
+                ),
+            )
+            return int(cursor.lastrowid)
+
+    def save_weapon_bundle(self, bundle: WeaponBundle) -> int:
+        raw_snapshot_path = self._write_batch_snapshot(
+            source=bundle.source,
+            prefix=bundle.primary_weapon.item_id,
+            raw_snapshot=bundle.raw_snapshot,
+            finished_at=bundle.finished_at,
+        )
+        with sqlite3.connect(self.db_path) as connection:
+            self._upsert_weapon(connection, bundle.primary_weapon)
+            cursor = connection.execute(
+                """
+                INSERT INTO crawl_runs (
+                    source, target, primary_job_id, job_count, status, raw_snapshot_path,
+                    started_at, finished_at, error_message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    bundle.source,
+                    bundle.target,
+                    bundle.primary_weapon.item_id,
+                    1,
                     "success",
                     str(raw_snapshot_path),
                     bundle.started_at,
@@ -229,6 +288,34 @@ class SQLiteStorage:
         with sqlite3.connect(self.db_path) as connection:
             return pd.read_sql_query(query, connection, params=(source, source_job_id))
 
+    def weapons_dataframe(self, source: str | None = None) -> pd.DataFrame:
+        query = "SELECT * FROM weapon_pages"
+        params: tuple[Any, ...] = ()
+        if source:
+            query += " WHERE source = ?"
+            params = (source,)
+        query += " ORDER BY updated_at DESC, title ASC"
+        with sqlite3.connect(self.db_path) as connection:
+            dataframe = pd.read_sql_query(query, connection, params=params)
+        if dataframe.empty:
+            return dataframe
+
+        for column in (
+            "infobox_tags_json",
+            "mod_slots_json",
+            "stats_json",
+            "sources_json",
+            "crafting_json",
+            "upgrading_json",
+            "repairing_json",
+            "recycling_json",
+            "price_comparison_json",
+            "history_json",
+            "raw_payload_json",
+        ):
+            dataframe[column] = dataframe[column].map(json.loads)
+        return dataframe
+
     def crawl_runs_dataframe(self, source: str | None = None, limit: int = 20) -> pd.DataFrame:
         query = "SELECT * FROM crawl_runs"
         params: tuple[Any, ...] = ()
@@ -244,6 +331,14 @@ class SQLiteStorage:
         with closing(sqlite3.connect(self.db_path)) as connection:
             row = connection.execute(
                 "SELECT COUNT(*) FROM jobs WHERE source = ?",
+                (source,),
+            ).fetchone()
+        return bool(row and row[0])
+
+    def has_weapons(self, source: str) -> bool:
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) FROM weapon_pages WHERE source = ?",
                 (source,),
             ).fetchone()
         return bool(row and row[0])
@@ -316,6 +411,70 @@ class SQLiteStorage:
             prefix=bundle.primary_job.job_id,
             raw_snapshot=bundle.raw_snapshot,
             finished_at=bundle.finished_at,
+        )
+
+    def _upsert_weapon(self, connection: sqlite3.Connection, weapon: WeaponRecord) -> None:
+        connection.execute(
+            """
+            INSERT INTO weapon_pages (
+                source, item_id, url, title, item_type, rarity, ammo_type, firing_mode,
+                arc_armor_penetration, magazine_size, quote, summary, infobox_tags_json,
+                mod_slots_json, stats_json, sources_json, crafting_json, upgrading_json,
+                repairing_json, recycling_json, price_comparison_json, history_json,
+                raw_payload_json, fetched_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source, item_id) DO UPDATE SET
+                url = excluded.url,
+                title = excluded.title,
+                item_type = excluded.item_type,
+                rarity = excluded.rarity,
+                ammo_type = excluded.ammo_type,
+                firing_mode = excluded.firing_mode,
+                arc_armor_penetration = excluded.arc_armor_penetration,
+                magazine_size = excluded.magazine_size,
+                quote = excluded.quote,
+                summary = excluded.summary,
+                infobox_tags_json = excluded.infobox_tags_json,
+                mod_slots_json = excluded.mod_slots_json,
+                stats_json = excluded.stats_json,
+                sources_json = excluded.sources_json,
+                crafting_json = excluded.crafting_json,
+                upgrading_json = excluded.upgrading_json,
+                repairing_json = excluded.repairing_json,
+                recycling_json = excluded.recycling_json,
+                price_comparison_json = excluded.price_comparison_json,
+                history_json = excluded.history_json,
+                raw_payload_json = excluded.raw_payload_json,
+                fetched_at = excluded.fetched_at,
+                updated_at = excluded.updated_at
+            """,
+            (
+                weapon.source,
+                weapon.item_id,
+                weapon.url,
+                weapon.title,
+                weapon.item_type,
+                weapon.rarity,
+                weapon.ammo_type,
+                weapon.firing_mode,
+                weapon.arc_armor_penetration,
+                weapon.magazine_size,
+                weapon.quote,
+                weapon.summary,
+                json.dumps(weapon.infobox_tags, ensure_ascii=False),
+                json.dumps(weapon.mod_slots, ensure_ascii=False),
+                json.dumps(weapon.stats, ensure_ascii=False),
+                json.dumps(weapon.sources, ensure_ascii=False),
+                json.dumps(weapon.crafting, ensure_ascii=False),
+                json.dumps(weapon.upgrading, ensure_ascii=False),
+                json.dumps(weapon.repairing, ensure_ascii=False),
+                json.dumps(weapon.recycling, ensure_ascii=False),
+                json.dumps(weapon.price_comparison, ensure_ascii=False),
+                json.dumps(weapon.history, ensure_ascii=False),
+                json.dumps(weapon.raw_payload, ensure_ascii=False),
+                weapon.fetched_at,
+                weapon.fetched_at,
+            ),
         )
 
     def _write_batch_snapshot(

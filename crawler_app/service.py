@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from crawler_app.connectors import get_connectors
 from crawler_app.connectors.base import ConnectorError
 from crawler_app.connectors.mihoyo_jobs import MihoyoJobsConnector
-from crawler_app.models import CrawlBundle
+from crawler_app.models import CrawlBundle, WeaponBundle
 from crawler_app.storage import SQLiteStorage
 
 
@@ -14,12 +14,17 @@ class CrawlService:
         self.storage = storage or SQLiteStorage()
         self.connectors = get_connectors()
 
-    def crawl_source(self, source: str, target: str, related_limit: int = 10) -> tuple[CrawlBundle, int]:
+    def crawl_source(self, source: str, target: str, related_limit: int = 10) -> tuple[CrawlBundle | WeaponBundle, int]:
         started_at = datetime.now(timezone.utc).isoformat()
         connector = self.connectors[source]
         try:
             bundle = connector.crawl(target=target, related_limit=related_limit)
-            run_id = self.storage.save_crawl_bundle(bundle)
+            if isinstance(bundle, CrawlBundle):
+                run_id = self.storage.save_crawl_bundle(bundle)
+            elif isinstance(bundle, WeaponBundle):
+                run_id = self.storage.save_weapon_bundle(bundle)
+            else:
+                raise ConnectorError(f"未知的抓取结果类型: {type(bundle)!r}")
             return bundle, run_id
         except Exception as error:
             finished_at = datetime.now(timezone.utc).isoformat()

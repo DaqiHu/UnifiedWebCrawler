@@ -69,3 +69,44 @@ class CrawlBundle:
     raw_snapshot: dict[str, Any]
     started_at: str = field(default_factory=utc_now_iso)
     finished_at: str = field(default_factory=utc_now_iso)
+
+
+@dataclass(slots=True)
+class WeaponRecord:
+    source: str
+    item_id: str
+    url: str
+    title: str
+    item_type: str
+    rarity: str
+    ammo_type: str
+    firing_mode: str
+    arc_armor_penetration: str
+    magazine_size: str
+    quote: str = ""
+    summary: str = ""
+    infobox_tags: list[str] = field(default_factory=list)
+    mod_slots: list[str] = field(default_factory=list)
+    stats: dict[str, str] = field(default_factory=dict)
+    sources: list[str] = field(default_factory=list)
+    crafting: list[dict[str, str]] = field(default_factory=list)
+    upgrading: list[dict[str, str]] = field(default_factory=list)
+    repairing: list[dict[str, str]] = field(default_factory=list)
+    recycling: list[dict[str, str]] = field(default_factory=list)
+    price_comparison: list[dict[str, str]] = field(default_factory=list)
+    history: list[dict[str, str]] = field(default_factory=list)
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+    fetched_at: str = field(default_factory=utc_now_iso)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class WeaponBundle:
+    source: str
+    target: str
+    primary_weapon: WeaponRecord
+    raw_snapshot: dict[str, Any]
+    started_at: str = field(default_factory=utc_now_iso)
+    finished_at: str = field(default_factory=utc_now_iso)

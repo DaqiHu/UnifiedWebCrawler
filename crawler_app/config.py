@@ -12,9 +12,11 @@ DB_PATH = DATA_DIR / "crawler.sqlite3"
 APP_TITLE = "Unified Web Crawler"
 DEFAULT_SOURCE = "mihoyo_jobs"
 DEFAULT_TARGET = "https://jobs.mihoyo.com/#/campus/position/8123"
+ARC_RAIDERS_DEFAULT_TARGET = "https://arcraiders.wiki/wiki/Kettle"
 
 MIHOYO_API_BASE = "https://ats.openout.mihoyo.com/ats-portal"
 MIHOYO_JOB_URL = "https://jobs.mihoyo.com/#/campus/position/{job_id}"
+ARC_RAIDERS_WIKI_API = "https://arcraiders.wiki/w/api.php"
 
 HTTP_TIMEOUT_SECONDS = 20.0
 
