@@ -1,7 +1,7 @@
 # Unified Web Crawler
 
 一个以 `Streamlit + Python` 为入口的个人爬虫工作台。  
-现在采用“首页路由 + 独立需求页”的结构：`miHoYo 校园招聘` 和 `ARC Raiders 武器资料` 各自独立页面、独立模型和独立展示逻辑。
+现在采用“首页路由 + 独立需求页”的结构：`miHoYo 校园招聘`、`ARC Raiders 武器资料` 和 `ARC Raiders 怪物资料` 各自独立页面、独立模型和独立展示逻辑。
 
 ## 当前能力
 
@@ -9,6 +9,7 @@
 - 通过岗位 URL 或岗位 ID 抓取 miHoYo 校招岗位
 - 自动抓取相似岗位并写入 SQLite
 - 抓取 ARC Raiders wiki 武器页的基础属性、来源和资源循环表
+- 抓取 ARC Raiders wiki ARC 敌人页的基础属性、战斗提示、掉落和图鉴条目
 - 保存每次抓取的原始接口快照到 `data/raw/`
 - 在 Streamlit 页面中查看岗位或武器页的结构化结果、原始 JSON 和运行记录
 - 支持开发时热重载：修改 Python 文件后，Streamlit 会自动刷新
@@ -25,16 +26,20 @@
 ├─ crawler_app/
 │  ├─ analysis.py
 │  ├─ bootstrap.py
+│  ├─ sync_arc_raiders_arc.py
+│  ├─ sync_arc_raiders_weapons.py
 │  ├─ config.py
 │  ├─ models.py
 │  ├─ pages/
 │  │  ├─ home/
+│  │  ├─ arc_raiders_arc/
 │  │  ├─ mihoyo_jobs/
 │  │  └─ arc_raiders_weapons/
 │  ├─ service.py
 │  ├─ storage.py
 │  └─ connectors/
 │     ├─ base.py
+│     ├─ arc_raiders_arc.py
 │     ├─ mihoyo_jobs.py
 │     └─ arc_raiders_weapons.py
 └─ data/
@@ -61,10 +66,34 @@ python -m crawler_app.bootstrap
 - `https://jobs.mihoyo.com/#/campus/position/8123`
 - `https://arcraiders.wiki/wiki/Kettle`（在 ARC Raiders 页面首次进入时会自动抓取）
 
-### 3. 启动 Web 工作台
+### 3. 批量同步 ARC Raiders 全部武器页
+
+```powershell
+python -m crawler_app.sync_arc_raiders_weapons
+```
+
+默认只抓取缺失页面。若需要强制重抓全部页面：
+
+```powershell
+python -m crawler_app.sync_arc_raiders_weapons --include-existing
+```
+
+### 4. 启动 Web 工作台
 
 ```powershell
 python -m streamlit run app.py
+```
+
+### 5. 批量同步 ARC Raiders 怪物页
+
+```powershell
+python -m crawler_app.sync_arc_raiders_arc
+```
+
+默认会从 `ARC` 总览页的 `Variants` 表中发现怪物标题，并只抓取缺失页面。若需要强制重抓已存在页面：
+
+```powershell
+python -m crawler_app.sync_arc_raiders_arc --include-existing
 ```
 
 默认地址通常是：
@@ -81,10 +110,18 @@ python -m streamlit run app.py
 
 - 保留岗位概览、关注分析、岗位表格、岗位详情与对比、原始数据、运行记录
 
-### ARC Raiders 页面
+### ARC Raiders 武器页面
 
 - 查看武器基础属性
+- 支持一键同步 `Category:Weapons` 下的全部武器页，并可选择只抓缺失页面
 - 查看来源、Crafting、Upgrading、Repairing、Recycling、价格对比和版本历史
+- 查看原始解析 JSON 和运行记录
+
+### ARC Raiders 怪物页面
+
+- 查看怪物威胁等级、护甲、主攻击、弱点与生命值
+- 支持一键同步 `ARC` 总览页 `Variants` 表里的全部怪物页，并可选择只抓缺失页面
+- 查看战斗提示、掉落、地点、图鉴条目与历史/改动记录
 - 查看原始解析 JSON 和运行记录
 
 ## 后续扩展方式
@@ -116,3 +153,10 @@ python -m streamlit run app.py
 - 当前最佳抓取路径：`https://arcraiders.wiki/w/api.php?action=parse&page=<WeaponName>&prop=text&format=json&formatversion=2`
 - 选择 parse API 的原因：只返回正文 HTML，比抓整站壳层稳定，也更贴近 `temp/target.html` 的内容结构
 - 已记录限制：站点的 Cargo API 会返回 `permissiondenied`，不能依赖 arbitrary cargo query 直接取表
+
+## ARC Raiders 怪物抓取说明
+
+- 默认样例页面：`https://arcraiders.wiki/wiki/Snitch`
+- 标题发现入口：`https://arcraiders.wiki/wiki/ARC` 的 `Variants` 表
+- 详情抓取路径：`https://arcraiders.wiki/w/api.php?action=parse&page=<EnemyName>&prop=text&format=json&formatversion=2`
+- 之所以不依赖 `Category:ARC` 的 `categorymembers`，是因为该站点当前返回空结果，稳定性不如直接解析 `ARC` 总览页

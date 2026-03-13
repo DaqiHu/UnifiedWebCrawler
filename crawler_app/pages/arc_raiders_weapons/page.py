@@ -53,6 +53,29 @@ def run_crawl(service: CrawlService, target: str) -> None:
     st.success(f"已完成抓取，运行 #{run_id}。页面: {bundle.primary_weapon.title}")
 
 
+def run_sync_all_weapons(service: CrawlService, only_missing: bool) -> None:
+    with st.spinner("正在同步 ARC Raiders 全部武器页..."):
+        result = service.sync_arc_raiders_weapons(source=SOURCE, only_missing=only_missing)
+
+    st.session_state["arc_sync_result"] = result
+    synced_count = len(result["synced"])
+    failed_count = len(result["failures"])
+    skipped_count = len(result["skipped_titles"])
+    total_count = len(result["discovered_titles"])
+
+    if failed_count:
+        failed_titles = ", ".join(item["title"] for item in result["failures"])
+        st.warning(
+            f"批量同步完成：成功 {synced_count} 页，失败 {failed_count} 页，跳过 {skipped_count} 页，共发现 {total_count} 页。"
+        )
+        st.caption(f"失败页面: {failed_titles}")
+        return
+
+    st.success(
+        f"批量同步完成：成功 {synced_count} 页，跳过 {skipped_count} 页，共发现 {total_count} 页。"
+    )
+
+
 def render_page() -> None:
     service = get_service()
     storage = service.storage
@@ -76,9 +99,17 @@ def render_page() -> None:
         st.title("ARC Raiders 武器页")
         st.caption("独立的武器资料抓取页面。")
         target = st.text_input("武器页面 URL 或标题", value=connector.default_target)
+        only_missing = st.checkbox("批量同步时仅抓取缺失页面", value=True)
         if st.button("执行抓取", type="primary", use_container_width=True):
             try:
                 run_crawl(service, target)
+            except ConnectorError as error:
+                st.error(str(error))
+            weapons_df = storage.weapons_dataframe(SOURCE)
+            runs_df = storage.crawl_runs_dataframe(SOURCE, limit=20)
+        if st.button("同步全部武器页", use_container_width=True):
+            try:
+                run_sync_all_weapons(service, only_missing=only_missing)
             except ConnectorError as error:
                 st.error(str(error))
             weapons_df = storage.weapons_dataframe(SOURCE)
@@ -98,6 +129,15 @@ def render_page() -> None:
         "先从武器页抓取入手，为后续分析资源循环和玩法设计推断打底。",
     )
     st.info("当前实现以 MediaWiki parse API 为主，抽取 infobox、来源和各类资源循环表。")
+    sync_result = st.session_state.get("arc_sync_result")
+    if sync_result:
+        st.caption(
+            "最近一次批量同步: "
+            f"发现 {len(sync_result['discovered_titles'])} 页，"
+            f"同步 {len(sync_result['synced'])} 页，"
+            f"跳过 {len(sync_result['skipped_titles'])} 页，"
+            f"失败 {len(sync_result['failures'])} 页。"
+        )
 
     overview_tab, detail_tab, raw_tab, runs_tab = st.tabs(["概览", "武器详情", "原始数据", "运行记录"])
 

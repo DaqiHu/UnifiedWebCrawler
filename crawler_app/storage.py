@@ -9,7 +9,14 @@ from typing import Any
 import pandas as pd
 
 from crawler_app.config import DB_PATH, RAW_DIR, ensure_directories
-from crawler_app.models import CrawlBundle, JobRecord, WeaponBundle, WeaponRecord
+from crawler_app.models import (
+    ArcEnemyBundle,
+    ArcEnemyRecord,
+    CrawlBundle,
+    JobRecord,
+    WeaponBundle,
+    WeaponRecord,
+)
 
 
 class SQLiteStorage:
@@ -101,6 +108,39 @@ class SQLiteStorage:
                     updated_at TEXT NOT NULL,
                     PRIMARY KEY (source, item_id)
                 );
+
+                CREATE TABLE IF NOT EXISTS arc_enemy_pages (
+                    source TEXT NOT NULL,
+                    item_id TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    threat_level TEXT,
+                    armor TEXT,
+                    primary_attack TEXT,
+                    weakness TEXT,
+                    abilities TEXT,
+                    xp_gained TEXT,
+                    health TEXT,
+                    summary TEXT,
+                    attack_text TEXT,
+                    behavior_text TEXT,
+                    abilities_text TEXT,
+                    codex_entry TEXT,
+                    stats_json TEXT NOT NULL,
+                    combat_tips_json TEXT NOT NULL,
+                    loot_json TEXT NOT NULL,
+                    locations_json TEXT NOT NULL,
+                    history_json TEXT NOT NULL,
+                    changelog_json TEXT NOT NULL,
+                    trivia_json TEXT NOT NULL,
+                    achievement_tips_json TEXT NOT NULL,
+                    references_json TEXT NOT NULL,
+                    sections_json TEXT NOT NULL,
+                    raw_payload_json TEXT NOT NULL,
+                    fetched_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    PRIMARY KEY (source, item_id)
+                );
                 """
             )
             self._ensure_job_columns(connection)
@@ -175,6 +215,36 @@ class SQLiteStorage:
                     bundle.source,
                     bundle.target,
                     bundle.primary_weapon.item_id,
+                    1,
+                    "success",
+                    str(raw_snapshot_path),
+                    bundle.started_at,
+                    bundle.finished_at,
+                    None,
+                ),
+            )
+            return int(cursor.lastrowid)
+
+    def save_arc_enemy_bundle(self, bundle: ArcEnemyBundle) -> int:
+        raw_snapshot_path = self._write_batch_snapshot(
+            source=bundle.source,
+            prefix=bundle.primary_enemy.item_id,
+            raw_snapshot=bundle.raw_snapshot,
+            finished_at=bundle.finished_at,
+        )
+        with sqlite3.connect(self.db_path) as connection:
+            self._upsert_arc_enemy(connection, bundle.primary_enemy)
+            cursor = connection.execute(
+                """
+                INSERT INTO crawl_runs (
+                    source, target, primary_job_id, job_count, status, raw_snapshot_path,
+                    started_at, finished_at, error_message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    bundle.source,
+                    bundle.target,
+                    bundle.primary_enemy.item_id,
                     1,
                     "success",
                     str(raw_snapshot_path),
@@ -343,6 +413,42 @@ class SQLiteStorage:
             ).fetchone()
         return bool(row and row[0])
 
+    def arc_enemies_dataframe(self, source: str | None = None) -> pd.DataFrame:
+        query = "SELECT * FROM arc_enemy_pages"
+        params: tuple[Any, ...] = ()
+        if source:
+            query += " WHERE source = ?"
+            params = (source,)
+        query += " ORDER BY updated_at DESC, title ASC"
+        with sqlite3.connect(self.db_path) as connection:
+            dataframe = pd.read_sql_query(query, connection, params=params)
+        if dataframe.empty:
+            return dataframe
+
+        for column in (
+            "stats_json",
+            "combat_tips_json",
+            "loot_json",
+            "locations_json",
+            "history_json",
+            "changelog_json",
+            "trivia_json",
+            "achievement_tips_json",
+            "references_json",
+            "sections_json",
+            "raw_payload_json",
+        ):
+            dataframe[column] = dataframe[column].map(json.loads)
+        return dataframe
+
+    def has_arc_enemies(self, source: str) -> bool:
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) FROM arc_enemy_pages WHERE source = ?",
+                (source,),
+            ).fetchone()
+        return bool(row and row[0])
+
     def _upsert_job(self, connection: sqlite3.Connection, job: JobRecord) -> None:
         connection.execute(
             """
@@ -474,6 +580,79 @@ class SQLiteStorage:
                 json.dumps(weapon.raw_payload, ensure_ascii=False),
                 weapon.fetched_at,
                 weapon.fetched_at,
+            ),
+        )
+
+    def _upsert_arc_enemy(self, connection: sqlite3.Connection, enemy: ArcEnemyRecord) -> None:
+        connection.execute(
+            """
+            INSERT INTO arc_enemy_pages (
+                source, item_id, url, title, threat_level, armor, primary_attack, weakness,
+                abilities, xp_gained, health, summary, attack_text, behavior_text,
+                abilities_text, codex_entry, stats_json, combat_tips_json, loot_json,
+                locations_json, history_json, changelog_json, trivia_json,
+                achievement_tips_json, references_json, sections_json, raw_payload_json,
+                fetched_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source, item_id) DO UPDATE SET
+                url = excluded.url,
+                title = excluded.title,
+                threat_level = excluded.threat_level,
+                armor = excluded.armor,
+                primary_attack = excluded.primary_attack,
+                weakness = excluded.weakness,
+                abilities = excluded.abilities,
+                xp_gained = excluded.xp_gained,
+                health = excluded.health,
+                summary = excluded.summary,
+                attack_text = excluded.attack_text,
+                behavior_text = excluded.behavior_text,
+                abilities_text = excluded.abilities_text,
+                codex_entry = excluded.codex_entry,
+                stats_json = excluded.stats_json,
+                combat_tips_json = excluded.combat_tips_json,
+                loot_json = excluded.loot_json,
+                locations_json = excluded.locations_json,
+                history_json = excluded.history_json,
+                changelog_json = excluded.changelog_json,
+                trivia_json = excluded.trivia_json,
+                achievement_tips_json = excluded.achievement_tips_json,
+                references_json = excluded.references_json,
+                sections_json = excluded.sections_json,
+                raw_payload_json = excluded.raw_payload_json,
+                fetched_at = excluded.fetched_at,
+                updated_at = excluded.updated_at
+            """,
+            (
+                enemy.source,
+                enemy.item_id,
+                enemy.url,
+                enemy.title,
+                enemy.threat_level,
+                enemy.armor,
+                enemy.primary_attack,
+                enemy.weakness,
+                enemy.abilities,
+                enemy.xp_gained,
+                enemy.health,
+                enemy.summary,
+                enemy.attack_text,
+                enemy.behavior_text,
+                enemy.abilities_text,
+                enemy.codex_entry,
+                json.dumps(enemy.stats, ensure_ascii=False),
+                json.dumps(enemy.combat_tips, ensure_ascii=False),
+                json.dumps(enemy.loot, ensure_ascii=False),
+                json.dumps(enemy.locations, ensure_ascii=False),
+                json.dumps(enemy.history, ensure_ascii=False),
+                json.dumps(enemy.changelog, ensure_ascii=False),
+                json.dumps(enemy.trivia, ensure_ascii=False),
+                json.dumps(enemy.achievement_tips, ensure_ascii=False),
+                json.dumps(enemy.references, ensure_ascii=False),
+                json.dumps(enemy.sections, ensure_ascii=False),
+                json.dumps(enemy.raw_payload, ensure_ascii=False),
+                enemy.fetched_at,
+                enemy.fetched_at,
             ),
         )
 

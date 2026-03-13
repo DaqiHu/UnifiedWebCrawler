@@ -110,3 +110,48 @@ class WeaponBundle:
     raw_snapshot: dict[str, Any]
     started_at: str = field(default_factory=utc_now_iso)
     finished_at: str = field(default_factory=utc_now_iso)
+
+
+@dataclass(slots=True)
+class ArcEnemyRecord:
+    source: str
+    item_id: str
+    url: str
+    title: str
+    threat_level: str
+    armor: str
+    primary_attack: str
+    weakness: str
+    abilities: str = ""
+    xp_gained: str = ""
+    health: str = ""
+    summary: str = ""
+    stats: dict[str, str] = field(default_factory=dict)
+    attack_text: str = ""
+    behavior_text: str = ""
+    abilities_text: str = ""
+    codex_entry: str = ""
+    combat_tips: list[str] = field(default_factory=list)
+    loot: list[dict[str, str]] = field(default_factory=list)
+    locations: list[str] = field(default_factory=list)
+    history: list[dict[str, str]] = field(default_factory=list)
+    changelog: list[dict[str, str]] = field(default_factory=list)
+    trivia: list[str] = field(default_factory=list)
+    achievement_tips: list[str] = field(default_factory=list)
+    references: list[str] = field(default_factory=list)
+    sections: dict[str, Any] = field(default_factory=dict)
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+    fetched_at: str = field(default_factory=utc_now_iso)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class ArcEnemyBundle:
+    source: str
+    target: str
+    primary_enemy: ArcEnemyRecord
+    raw_snapshot: dict[str, Any]
+    started_at: str = field(default_factory=utc_now_iso)
+    finished_at: str = field(default_factory=utc_now_iso)

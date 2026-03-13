@@ -8,21 +8,21 @@ import httpx
 from bs4 import BeautifulSoup, Tag
 
 from crawler_app.config import (
-    ARC_RAIDERS_DEFAULT_TARGET,
-    ARC_RAIDERS_WEAPON_CATEGORY,
+    ARC_RAIDERS_ARC_DEFAULT_TARGET,
+    ARC_RAIDERS_ARC_OVERVIEW_PAGE,
     ARC_RAIDERS_WIKI_API,
     HTTP_TIMEOUT_SECONDS,
 )
 from crawler_app.connectors.base import BaseConnector, ConnectorError
-from crawler_app.models import WeaponBundle, WeaponRecord
+from crawler_app.models import ArcEnemyBundle, ArcEnemyRecord
 
 
-class ArcRaidersWeaponsConnector(BaseConnector):
-    source = "arc_raiders_weapons"
-    display_name = "ARC Raiders Wiki Weapons"
-    data_kind = "武器资料"
-    description = "抓取 ARC Raiders wiki 武器页的基础属性、来源和资源循环表。"
-    default_target = ARC_RAIDERS_DEFAULT_TARGET
+class ArcRaidersArcConnector(BaseConnector):
+    source = "arc_raiders_arc"
+    display_name = "ARC Raiders ARC Enemies"
+    data_kind = "怪物资料"
+    description = "抓取 ARC Raiders wiki 中 ARC 敌人页的基础属性、战斗提示、掉落和图鉴条目。"
+    default_target = ARC_RAIDERS_ARC_DEFAULT_TARGET
 
     def __init__(self) -> None:
         self.client = httpx.Client(
@@ -35,18 +35,18 @@ class ArcRaidersWeaponsConnector(BaseConnector):
             },
         )
 
-    def crawl(self, target: str, related_limit: int = 10) -> WeaponBundle:
+    def crawl(self, target: str, related_limit: int = 10) -> ArcEnemyBundle:
         del related_limit
         started_at = datetime.now(timezone.utc).isoformat()
         page_title = self.resolve_page_title(target)
         payload = self._fetch_parse_payload(page_title)
-        page_url = self._build_page_url(page_title)
-        weapon = self.parse_weapon_page(payload["text"], payload["title"], page_url)
+        page_url = self._build_page_url(payload["title"])
+        enemy = self.parse_enemy_page(payload["text"], payload["title"], page_url)
         finished_at = datetime.now(timezone.utc).isoformat()
-        return WeaponBundle(
+        return ArcEnemyBundle(
             source=self.source,
             target=target,
-            primary_weapon=weapon,
+            primary_enemy=enemy,
             raw_snapshot={
                 "page_title": page_title,
                 "page_url": page_url,
@@ -56,29 +56,14 @@ class ArcRaidersWeaponsConnector(BaseConnector):
             finished_at=finished_at,
         )
 
-    def fetch_weapon_titles(self, category_title: str = ARC_RAIDERS_WEAPON_CATEGORY) -> list[str]:
-        response = self.client.get(
-            ARC_RAIDERS_WIKI_API,
-            params={
-                "action": "query",
-                "list": "categorymembers",
-                "cmtitle": category_title,
-                "cmlimit": "max",
-                "format": "json",
-                "formatversion": "2",
-            },
-        )
-        response.raise_for_status()
-        body = response.json()
-        if "error" in body:
-            raise ConnectorError(f"wiki category API 失败: {body['error'].get('info', body['error'])}")
-
-        titles = [
-            title
-            for item in body.get("query", {}).get("categorymembers", [])
-            if (title := str(item.get("title", "")).strip()) and not title.startswith("Category:")
-        ]
-        return sorted(dict.fromkeys(titles))
+    def fetch_enemy_titles(self, overview_page: str = ARC_RAIDERS_ARC_OVERVIEW_PAGE) -> list[str]:
+        payload = self._fetch_parse_payload(overview_page)
+        soup = BeautifulSoup(payload["text"], "html.parser")
+        root = soup.select_one(".mw-parser-output") or soup
+        titles = self._extract_titles_from_sections(root, section_names=("Variants",))
+        if not titles:
+            raise ConnectorError(f"页面 {overview_page} 中未找到 ARC 敌人标题列表。")
+        return titles
 
     def resolve_page_title(self, target: str) -> str:
         value = target.strip()
@@ -93,22 +78,21 @@ class ArcRaidersWeaponsConnector(BaseConnector):
                     return title
         return unquote(value).replace("_", " ").strip()
 
-    def parse_weapon_page(self, html: str, page_title: str, page_url: str) -> WeaponRecord:
+    def parse_enemy_page(self, html: str, page_title: str, page_url: str) -> ArcEnemyRecord:
         soup = BeautifulSoup(html, "html.parser")
         root = soup.select_one(".mw-parser-output") or soup
         infobox = root.select_one("table.infobox")
         if infobox is None:
-            raise ConnectorError(f"页面 {page_title} 中未找到武器 infobox。")
+            raise ConnectorError(f"页面 {page_title} 中未找到 ARC 怪物 infobox。")
 
-        infobox_tags = self._dedupe(
-            self._extract_text(anchor)
-            for anchor in infobox.select("tr.data-tag.link-button a")
-        )
         stats = self._parse_infobox_stats(infobox)
+        if not stats.get("Threat Level"):
+            raise ConnectorError(f"页面 {page_title} 不是可解析的 ARC 敌人页。")
+
         sections = self._parse_sections(root)
         lead_paragraphs = self._extract_lead_paragraphs(root)
 
-        return WeaponRecord(
+        return ArcEnemyRecord(
             source=self.source,
             item_id=page_title,
             url=page_url,
@@ -116,27 +100,28 @@ class ArcRaidersWeaponsConnector(BaseConnector):
                 self._extract_text(infobox.select_one("tr.infobox-title")),
                 page_title,
             ),
-            item_type=infobox_tags[0] if infobox_tags else "",
-            rarity=infobox_tags[1] if len(infobox_tags) > 1 else "",
-            ammo_type=stats.get("Ammo Type", ""),
-            firing_mode=stats.get("Firing Mode", ""),
-            arc_armor_penetration=stats.get("ARC Armor Penetration", ""),
-            magazine_size=stats.get("Magazine Size", ""),
-            quote=self._extract_text(infobox.select_one("tr.data-weaponquote")),
+            threat_level=stats.get("Threat Level", ""),
+            armor=stats.get("Armor", ""),
+            primary_attack=stats.get("Primary Attack", ""),
+            weakness=stats.get("Weakness", ""),
+            abilities=stats.get("Abilities", ""),
+            xp_gained=stats.get("XP Gained", ""),
+            health=stats.get("Health", ""),
             summary="\n\n".join(lead_paragraphs),
-            infobox_tags=infobox_tags,
-            mod_slots=self._parse_mod_slots(infobox),
             stats=stats,
-            sources=sections.get("Sources", {}).get("list", []),
-            crafting=sections.get("Crafting", {}).get("table", []),
-            upgrading=sections.get("Upgrading", {}).get("table", []),
-            repairing=sections.get("Repairing", {}).get("table", []),
-            recycling=sections.get("Recycling & Salvaging", {}).get("table", []),
-            price_comparison=sections.get(
-                "Weapon Sale Price vs Component Sale Price Per Inventory Slot",
-                {},
-            ).get("table", []),
+            attack_text=sections.get("Attack", {}).get("text", ""),
+            behavior_text=sections.get("Behavior", {}).get("text", ""),
+            abilities_text=sections.get("Abilities", {}).get("text", ""),
+            codex_entry=sections.get("Codex entry", {}).get("text", ""),
+            combat_tips=sections.get("Combat tips", {}).get("list", []),
+            loot=self._resolve_loot_rows(sections.get("Loot", {})),
+            locations=sections.get("Locations", {}).get("list", []),
             history=sections.get("History", {}).get("table", []),
+            changelog=sections.get("Changelog", {}).get("table", []),
+            trivia=sections.get("Trivia", {}).get("list", []),
+            achievement_tips=sections.get("Achievement tips", {}).get("list", []),
+            references=sections.get("References", {}).get("list", []),
+            sections=sections,
             raw_payload={
                 "page_title": page_title,
                 "html": html,
@@ -166,6 +151,32 @@ class ArcRaidersWeaponsConnector(BaseConnector):
     def _build_page_url(self, page_title: str) -> str:
         return f"https://arcraiders.wiki/wiki/{page_title.replace(' ', '_')}"
 
+    def _extract_titles_from_sections(self, root: Tag, section_names: tuple[str, ...]) -> list[str]:
+        titles: list[str] = []
+        allowed_sections = set(section_names)
+        for heading_wrapper in root.select("div.mw-heading"):
+            heading = heading_wrapper.find("h2")
+            if heading is None:
+                continue
+            section_name = self._extract_text(heading)
+            if section_name not in allowed_sections:
+                continue
+            for node in self._collect_section_nodes(heading_wrapper):
+                if node.name != "table":
+                    continue
+                for row in node.select("tr")[1:]:
+                    first_cell = row.find(["th", "td"], recursive=False)
+                    if first_cell is None:
+                        continue
+                    anchor = first_cell.select_one("a[href^='/wiki/']")
+                    if anchor is None:
+                        continue
+                    href = str(anchor.get("href", "")).strip()
+                    title = unquote(href.removeprefix("/wiki/")).replace("_", " ").strip()
+                    if title and title not in titles:
+                        titles.append(title)
+        return titles
+
     def _parse_infobox_stats(self, infobox: Tag) -> dict[str, str]:
         stats: dict[str, str] = {}
         for row in infobox.select("tr.infobox-data"):
@@ -174,18 +185,6 @@ class ArcRaidersWeaponsConnector(BaseConnector):
             if header:
                 stats[header] = value
         return stats
-
-    def _parse_mod_slots(self, infobox: Tag) -> list[str]:
-        slots: list[str] = []
-        for node in infobox.select("tr.data-mods span[title], tr.data-mods img[alt]"):
-            label = ""
-            if node.has_attr("title"):
-                label = str(node["title"]).strip()
-            elif node.has_attr("alt"):
-                label = str(node["alt"]).strip()
-            if label and label not in slots:
-                slots.append(label)
-        return slots
 
     def _parse_sections(self, root: Tag) -> dict[str, dict[str, Any]]:
         sections: dict[str, dict[str, Any]] = {}
@@ -200,15 +199,21 @@ class ArcRaidersWeaponsConnector(BaseConnector):
                 for node in nodes
                 for item in node.select("ul > li")
             )
-            table = []
+            table: list[dict[str, str]] = []
             for node in nodes:
                 candidate = node if node.name == "table" else node.select_one("table")
                 if candidate is not None:
                     table = self._parse_table(candidate)
                     break
+            item_grid = self._dedupe(
+                self._extract_text(item)
+                for node in nodes
+                for item in node.select(".item-grid .item-name")
+            )
             sections[section_name] = {
                 "list": list_items,
                 "table": table,
+                "item_grid": item_grid,
                 "text": "\n\n".join(text for text in (self._extract_text(node) for node in nodes) if text),
             }
         return sections
@@ -291,3 +296,18 @@ class ArcRaidersWeaponsConnector(BaseConnector):
             if value:
                 return value
         return ""
+
+    def _resolve_loot_rows(self, loot_section: dict[str, Any]) -> list[dict[str, str]]:
+        table_rows = loot_section.get("table", [])
+        if table_rows:
+            return table_rows
+
+        item_grid = loot_section.get("item_grid", [])
+        if item_grid:
+            return [{"Item": item_name} for item_name in item_grid]
+
+        list_items = loot_section.get("list", [])
+        if list_items:
+            return [{"Item": item_name} for item_name in list_items]
+
+        return []

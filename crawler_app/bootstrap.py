@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 from crawler_app.config import DEFAULT_SOURCE, DEFAULT_TARGET
+from crawler_app.models import ArcEnemyBundle, CrawlBundle, WeaponBundle
 from crawler_app.service import CrawlService
 
 
@@ -19,10 +20,19 @@ def main() -> None:
         target=args.target,
         related_limit=args.related_limit,
     )
-    print(
-        f"Saved crawl run #{run_id}: {bundle.primary_job.title} "
-        f"+ {len(bundle.related_jobs)} related jobs"
-    )
+    if isinstance(bundle, CrawlBundle):
+        print(
+            f"Saved crawl run #{run_id}: {bundle.primary_job.title} "
+            f"+ {len(bundle.related_jobs)} related jobs"
+        )
+        return
+    if isinstance(bundle, WeaponBundle):
+        print(f"Saved crawl run #{run_id}: {bundle.primary_weapon.title}")
+        return
+    if isinstance(bundle, ArcEnemyBundle):
+        print(f"Saved crawl run #{run_id}: {bundle.primary_enemy.title}")
+        return
+    raise RuntimeError(f"Unsupported bundle type: {type(bundle)!r}")
 
 
 if __name__ == "__main__":

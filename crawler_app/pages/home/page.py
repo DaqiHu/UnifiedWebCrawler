@@ -10,9 +10,9 @@ def render_home_page() -> None:
         "Unified Web Crawler",
         "把完全独立的需求拆成独立页面。首页只负责路由和目录。",
     )
-    st.info("当前已拆分为独立页面：miHoYo 校招岗位分析、ARC Raiders 武器资料抓取。")
+    st.info("当前已拆分为独立页面：miHoYo 校招岗位分析、ARC Raiders 武器资料抓取、ARC Raiders 怪物资料抓取。")
 
-    columns = st.columns(2)
+    columns = st.columns(3)
     with columns[0]:
         st.markdown(
             """
@@ -38,3 +38,16 @@ def render_home_page() -> None:
         )
         if st.button("进入 ARC Raiders 页面", key="go_arc", use_container_width=True):
             st.switch_page("pages/2_arc_raiders_weapons.py")
+
+    with columns[2]:
+        st.markdown(
+            """
+            <div class="route-card">
+                <h3>ARC Raiders 怪物资料</h3>
+                <div>抓取 ARC 敌人的威胁等级、弱点、战斗提示、掉落和图鉴信息。</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("进入 ARC 怪物页面", key="go_arc_enemies", use_container_width=True):
+            st.switch_page("pages/3_arc_raiders_arc.py")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest.mock import Mock
 
 from crawler_app.connectors.arc_raiders_weapons import ArcRaidersWeaponsConnector
 
@@ -18,6 +19,26 @@ class ArcRaidersWeaponsConnectorTests(unittest.TestCase):
             "Kettle",
         )
         self.assertEqual(self.connector.resolve_page_title("Kettle"), "Kettle")
+
+    def test_fetch_weapon_titles_filters_category_entries(self) -> None:
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "query": {
+                "categorymembers": [
+                    {"title": "Kettle"},
+                    {"title": "Anvil"},
+                    {"title": "Category:Weapon types"},
+                    {"title": "Kettle"},
+                ]
+            }
+        }
+        self.connector.client = Mock()
+        self.connector.client.get.return_value = response
+
+        titles = self.connector.fetch_weapon_titles()
+
+        self.assertEqual(titles, ["Anvil", "Kettle"])
 
     def test_parse_weapon_page_extracts_infobox_and_resource_tables(self) -> None:
         weapon = self.connector.parse_weapon_page(
