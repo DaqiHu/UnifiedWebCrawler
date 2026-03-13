@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import closing
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -333,9 +334,57 @@ class SQLiteStorage:
         if dataframe.empty:
             return dataframe
 
-        for column in ("address_ids_json", "channel_detail_ids_json", "tags_json", "raw_payload_json"):
-            dataframe[column] = dataframe[column].map(json.loads)
+        for column in (
+            "address_ids_json",
+            "channel_detail_ids_json",
+            "tags_json",
+            "raw_payload_json",
+            "ai_focus_signals_json",
+        ):
+            if column in dataframe.columns:
+                dataframe[column] = dataframe[column].map(self._load_json_or_default)
         return dataframe
+
+    def save_job_ai_analysis(
+        self,
+        source: str,
+        analyses: list[dict[str, Any]],
+        analyzed_at: str | None = None,
+    ) -> int:
+        if not analyses:
+            return 0
+
+        timestamp = analyzed_at or datetime.now(timezone.utc).isoformat()
+        updated_rows = 0
+        with sqlite3.connect(self.db_path) as connection:
+            for item in analyses:
+                cursor = connection.execute(
+                    """
+                    UPDATE jobs
+                    SET
+                        ai_analysis = ?,
+                        ai_focus_score = ?,
+                        ai_focus_level = ?,
+                        ai_focus_lane = ?,
+                        ai_focus_reason = ?,
+                        ai_focus_signals_json = ?,
+                        ai_focus_updated_at = ?
+                    WHERE source = ? AND job_id = ?
+                    """,
+                    (
+                        str(item.get("ai_analysis", "") or ""),
+                        int(item.get("ai_focus_score", 0) or 0),
+                        str(item.get("ai_focus_level", "") or ""),
+                        str(item.get("ai_focus_lane", "") or ""),
+                        str(item.get("ai_focus_reason", "") or ""),
+                        json.dumps(item.get("ai_focus_signals_json", []), ensure_ascii=False),
+                        str(item.get("ai_focus_updated_at", "") or timestamp),
+                        source,
+                        str(item["job_id"]),
+                    ),
+                )
+                updated_rows += int(cursor.rowcount or 0)
+        return updated_rows
 
     def related_jobs_dataframe(self, source: str, source_job_id: str) -> pd.DataFrame:
         query = """
@@ -678,5 +727,23 @@ class SQLiteStorage:
             row[1]
             for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
         }
-        if "delivery_instructions" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN delivery_instructions TEXT DEFAULT ''")
+        wanted_columns = {
+            "delivery_instructions": "TEXT DEFAULT ''",
+            "ai_analysis": "TEXT DEFAULT ''",
+            "ai_focus_score": "INTEGER DEFAULT 0",
+            "ai_focus_level": "TEXT DEFAULT ''",
+            "ai_focus_lane": "TEXT DEFAULT ''",
+            "ai_focus_reason": "TEXT DEFAULT ''",
+            "ai_focus_signals_json": "TEXT DEFAULT '[]'",
+            "ai_focus_updated_at": "TEXT DEFAULT ''",
+        }
+        for column_name, column_spec in wanted_columns.items():
+            if column_name not in columns:
+                connection.execute(f"ALTER TABLE jobs ADD COLUMN {column_name} {column_spec}")
+
+    def _load_json_or_default(self, value: Any) -> Any:
+        if value in (None, ""):
+            return []
+        if isinstance(value, (list, dict)):
+            return value
+        return json.loads(value)

@@ -5,6 +5,7 @@ import unittest
 import pandas as pd
 
 from crawler_app.analysis import (
+    build_ai_focus_dataframe,
     build_cross_domain_candidates,
     build_low_prep_candidates,
     build_pipeline_edge_summary,
@@ -18,6 +19,26 @@ class FocusAnalysisTests(unittest.TestCase):
         self.jobs_df = enrich_jobs_dataframe(
             pd.DataFrame(
                 [
+                    {
+                        "job_id": "7884",
+                        "title": "系统策划实习生",
+                        "category": "产品策划类",
+                        "summary": "在实战中学习游戏系统设计的完整流程。",
+                        "description": (
+                            "1. 根据游戏项目的系统架构编写相关系统及活动玩法功能文档；\n"
+                            "2. 与程序、UI、美术等部门合作，跟进系统功能的制作及验收；\n"
+                            "3. 结合反馈对现有系统进行有效的迭代与扩展。"
+                        ),
+                        "requirements": (
+                            "1. 熟悉Unity/UE的基本结构与操作；\n"
+                            "2. 了解脚本语言与配置格式；\n"
+                            "3. 对数据敏感，有运营意识。"
+                        ),
+                        "bonus_points": "",
+                        "delivery_instructions": "【必需项】请务必提供个人游戏经历及相关作品。",
+                        "tags_json": [],
+                        "updated_at": "2026-03-09T00:00:00+00:00",
+                    },
                     {
                         "job_id": "8123",
                         "title": "游戏引擎开发实习生",
@@ -116,6 +137,20 @@ class FocusAnalysisTests(unittest.TestCase):
         self.assertIn("交互策划（UE）实习生", titles)
         self.assertIn("游戏引擎开发实习生", titles)
         self.assertIn("策划/需求 <-> 技术/工程", edges)
+
+    def test_ai_focus_analysis_prioritizes_direct_design_roles_over_generic_product_roles(self) -> None:
+        dataframe = build_ai_focus_dataframe(self.jobs_df)
+
+        system_score = int(dataframe.loc[dataframe["title"] == "系统策划实习生", "ai_focus_score"].iloc[0])
+        ue_score = int(dataframe.loc[dataframe["title"] == "交互策划（UE）实习生", "ai_focus_score"].iloc[0])
+        engine_score = int(dataframe.loc[dataframe["title"] == "游戏引擎开发实习生", "ai_focus_score"].iloc[0])
+        ai_product_score = int(dataframe.loc[dataframe["title"] == "AI产品实习生", "ai_focus_score"].iloc[0])
+        system_analysis = dataframe.loc[dataframe["title"] == "系统策划实习生", "ai_analysis"].iloc[0]
+
+        self.assertGreater(system_score, ue_score)
+        self.assertGreater(ue_score, engine_score)
+        self.assertGreater(engine_score, ai_product_score)
+        self.assertIn("系统", system_analysis)
 
 
 if __name__ == "__main__":

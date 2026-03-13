@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from crawler_app.analysis import build_ai_focus_dataframe, enrich_jobs_dataframe
 from crawler_app.config import ARC_RAIDERS_ARC_OVERVIEW_PAGE, ARC_RAIDERS_WEAPON_CATEGORY
 from crawler_app.connectors import get_connectors
 from crawler_app.connectors.arc_raiders_arc import ArcRaidersArcConnector
@@ -29,6 +30,8 @@ class CrawlService:
             bundle = connector.crawl(target=target, related_limit=related_limit)
             if isinstance(bundle, CrawlBundle):
                 run_id = self.storage.save_crawl_bundle(bundle)
+                if source == "mihoyo_jobs":
+                    self.refresh_job_ai_analysis(source)
             elif isinstance(bundle, WeaponBundle):
                 run_id = self.storage.save_weapon_bundle(bundle)
             elif isinstance(bundle, ArcEnemyBundle):
@@ -72,6 +75,7 @@ class CrawlService:
             started_at=started_at,
             finished_at=finished_at,
         )
+        self.refresh_job_ai_analysis(source)
         return len(jobs), run_id
 
     def sync_all_jobs(self, source: str, internships_only: bool = True) -> tuple[int, int]:
@@ -91,11 +95,28 @@ class CrawlService:
             started_at=started_at,
             finished_at=finished_at,
         )
+        self.refresh_job_ai_analysis(source)
         return len(jobs), run_id
 
     def fetch_category_counts(self, source: str, internships_only: bool = True) -> list[dict[str, object]]:
         connector = self._get_mihoyo_connector(source)
         return connector.fetch_category_counts(internships_only=internships_only)
+
+    def refresh_job_ai_analysis(self, source: str) -> int:
+        jobs_df = self.storage.jobs_dataframe(source)
+        if jobs_df.empty:
+            return 0
+
+        analysis_df = build_ai_focus_dataframe(enrich_jobs_dataframe(jobs_df))
+        if analysis_df.empty:
+            return 0
+
+        analyzed_at = datetime.now(timezone.utc).isoformat()
+        return self.storage.save_job_ai_analysis(
+            source=source,
+            analyses=analysis_df.to_dict("records"),
+            analyzed_at=analyzed_at,
+        )
 
     def sync_arc_raiders_weapons(
         self,

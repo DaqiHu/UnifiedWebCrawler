@@ -53,6 +53,12 @@ def run_full_sync(service: CrawlService) -> None:
     st.success(f"已完成全站全量同步，运行 #{run_id}，新增/更新 {job_count} 个岗位。")
 
 
+def run_ai_analysis_refresh(service: CrawlService) -> None:
+    with st.spinner("正在基于当前数据库岗位刷新 AI 分析..."):
+        updated_count = service.refresh_job_ai_analysis(SOURCE)
+    st.success(f"已刷新 {updated_count} 个岗位的 AI 分析。")
+
+
 def render_page() -> None:
     service = get_service()
     storage = service.storage
@@ -72,6 +78,22 @@ def render_page() -> None:
             run_crawl(service, connector.default_target, 10)
         except ConnectorError as error:
             st.error(f"默认样例抓取失败: {error}")
+        jobs_df = storage.jobs_dataframe(SOURCE)
+
+    ai_bootstrap_key = "mihoyo_ai_analysis_bootstrapped"
+    ai_analysis_missing = (
+        not jobs_df.empty
+        and (
+            "ai_analysis" not in jobs_df.columns
+            or jobs_df["ai_analysis"].fillna("").eq("").all()
+        )
+    )
+    if ai_analysis_missing and ai_bootstrap_key not in st.session_state:
+        st.session_state[ai_bootstrap_key] = True
+        try:
+            service.refresh_job_ai_analysis(SOURCE)
+        except ConnectorError as error:
+            st.error(f"AI 分析初始化失败: {error}")
         jobs_df = storage.jobs_dataframe(SOURCE)
 
     jobs_df = enrich_jobs_dataframe(jobs_df)
@@ -105,6 +127,13 @@ def render_page() -> None:
             jobs_df = enrich_jobs_dataframe(storage.jobs_dataframe(SOURCE))
             runs_df = storage.crawl_runs_dataframe(SOURCE, limit=20)
 
+        if st.button("刷新 AI 分析", use_container_width=True):
+            try:
+                run_ai_analysis_refresh(service)
+            except ConnectorError as error:
+                st.error(str(error))
+            jobs_df = enrich_jobs_dataframe(storage.jobs_dataframe(SOURCE))
+
         st.download_button(
             "下载岗位 CSV",
             data=dataframe_to_csv_bytes(jobs_df.drop(columns=["raw_payload_json"]) if not jobs_df.empty else jobs_df),
@@ -115,7 +144,7 @@ def render_page() -> None:
 
     render_page_header(
         "miHoYo 校招岗位工作台",
-        "保留原岗位抓取、相似岗位分析和启发式关注视图。",
+        "在原抓取与启发式分析之外，新增把岗位 AI 判断直接落库并可视化的关注视图。",
     )
     st.info(
         "支持三种范围：单岗位样本抓取、同类别全量实习抓取、全站全量实习抓取。"
@@ -249,7 +278,78 @@ def render_page() -> None:
             st.info("当前数据库还没有数据。先在左侧点击“抓取 / 刷新当前数据”。")
         else:
             focus_insights = build_focus_insights(jobs_df)
-            st.caption("以下结论基于岗位 JD 文本做启发式推断，适合先筛选，再回到岗位详情做人工确认。")
+            ai_focus_df = (
+                jobs_df[
+                    [
+                        "job_id",
+                        "title",
+                        "category",
+                        "ai_focus_score",
+                        "ai_focus_level",
+                        "ai_focus_lane",
+                        "ai_focus_reason",
+                        "ai_analysis",
+                        "ai_focus_signals_json",
+                    ]
+                ]
+                .sort_values(by=["ai_focus_score", "title"], ascending=[False, True])
+                .reset_index(drop=True)
+            )
+            st.caption("这部分优先展示我基于当前岗位 JD 给出的主观判断；下面的旧版启发式表格仍保留，方便交叉验证。")
+
+            with st.expander("0. 哪些岗位最容易听到策划核心专有名词", expanded=True):
+                top_focus_df = ai_focus_df.head(12).copy()
+                top_focus_df["signals_text"] = top_focus_df["ai_focus_signals_json"].map(
+                    lambda values: " / ".join(values[:6]) if isinstance(values, list) else ""
+                )
+                st.caption(
+                    "我的当前判断：最该优先看的仍是系统策划、战斗策划、技术策划、数值策划、关卡策划、任务策划；"
+                    "交互策划（UE）紧随其后，更偏体验与界面；游戏引擎开发更适合理解实现层，不是策划黑话最密集的入口。"
+                )
+                score_columns = st.columns([1.2, 1])
+                score_columns[0].plotly_chart(
+                    px.bar(
+                        top_focus_df,
+                        x="title",
+                        y="ai_focus_score",
+                        color="ai_focus_level",
+                        title="策划核心接触度 Top 12",
+                        text_auto=True,
+                    ),
+                    use_container_width=True,
+                )
+                level_df = (
+                    ai_focus_df.groupby(["ai_focus_level", "ai_focus_lane"], as_index=False)["job_id"]
+                    .count()
+                    .rename(columns={"job_id": "count"})
+                )
+                score_columns[1].plotly_chart(
+                    px.bar(
+                        level_df,
+                        x="ai_focus_level",
+                        y="count",
+                        color="ai_focus_lane",
+                        title="AI 判断分层",
+                        text_auto=True,
+                    ),
+                    use_container_width=True,
+                )
+                st.dataframe(
+                    top_focus_df[
+                        [
+                            "job_id",
+                            "title",
+                            "category",
+                            "ai_focus_score",
+                            "ai_focus_level",
+                            "ai_focus_lane",
+                            "signals_text",
+                            "ai_focus_reason",
+                        ]
+                    ],
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
             with st.expander("1. 哪些岗位在做跨界融合", expanded=True):
                 st.write(focus_insights["cross_domain"]["description"])
@@ -281,6 +381,9 @@ def render_page() -> None:
                     "target_audience",
                     "job_nature",
                     "project_name",
+                    "ai_focus_score",
+                    "ai_focus_level",
+                    "ai_focus_lane",
                     "tags_text",
                     "summary_count",
                     "responsibility_count",
@@ -302,13 +405,20 @@ def render_page() -> None:
                 format_func=lambda job_id: f"{job_id} - {jobs_df.loc[jobs_df['job_id'] == job_id, 'title'].iloc[0]}",
             )
             selected_job = jobs_df[jobs_df["job_id"] == selected_job_id].iloc[0]
-            info_cols = st.columns(4)
+            info_cols = st.columns(5)
             info_cols[0].metric("岗位", selected_job["title"])
             info_cols[1].metric("城市", selected_job["location"])
             info_cols[2].metric("类别", selected_job["category"])
             info_cols[3].metric("面向对象", selected_job["target_audience"])
+            info_cols[4].metric("AI判断", f"{selected_job['ai_focus_level']} / {selected_job['ai_focus_score']}")
             if selected_job["tags_text"]:
                 st.caption(f"岗位标签: {selected_job['tags_text']}")
+            st.caption(f"策划核心接触位阶: {selected_job['ai_focus_lane']}")
+            if selected_job["ai_analysis"]:
+                st.info(selected_job["ai_analysis"])
+            signals = selected_job.get("ai_focus_signals_json", [])
+            if isinstance(signals, list) and signals:
+                st.caption(f"判断依据: {' / '.join(signals)}")
 
             text_cols = st.columns(2)
             with text_cols[0]:
@@ -361,6 +471,19 @@ def render_page() -> None:
             )
             comparison_df = build_skill_matrix(jobs_df, comparison_ids)
             st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+
+            st.subheader("AI 分析对比")
+            ai_compare_df = jobs_df[jobs_df["job_id"].isin(comparison_ids)][
+                [
+                    "job_id",
+                    "title",
+                    "ai_focus_score",
+                    "ai_focus_level",
+                    "ai_focus_lane",
+                    "ai_focus_reason",
+                ]
+            ].sort_values(by=["ai_focus_score", "title"], ascending=[False, True])
+            st.dataframe(ai_compare_df, use_container_width=True, hide_index=True)
 
     with raw_tab:
         if jobs_df.empty:
